@@ -1,0 +1,21 @@
+# Build files
+*.3dsx
+*.cia
+*.elf
+*.o
+
+# Build directory
+/build/
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Config files (user-specific)
+config.json
+sdmc:/fedii/
