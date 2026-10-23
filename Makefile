@@ -5,19 +5,28 @@ TARGET := fedii
 BUILD_DIR := build
 SOURCE_DIR := source
 INCLUDE_DIR := include
-GRAPHICS_DIR := graphics
+
+# Toolchain
+CC := arm-none-eabi-gcc
+CXX := arm-none-eabi-g++
+STRIP := arm-none-eabi-strip
 
 # Compiler settings
 CFLAGS := -g -O2 -Wall -Wextra
-CFLAGS += -D_3DS -DARM11 -DARM9
-CFLAGS += -I$(INCLUDE_DIR) -I$(PORTLIBS)/include
+CFLAGS += -D_3DS -DARM11
+CFLAGS += -I$(INCLUDE_DIR)
+CFLAGS += -I$(DEVKITARM)/arm-none-eabi/include
+CFLAGS += -I$(LIBCTRU)/include
+CFLAGS += -I$(PORTLIBS)/include
+CFLAGS += -I$(PORTLIBS)/include/jansson
 
 # Linker settings
 LDFLAGS := -specs=3dsx.specs -g
+LDFLAGS += -L$(LIBCTRU)/lib
 LDFLAGS += -L$(PORTLIBS)/lib
 
 # Libraries
-LIBS := -lctru -lcitro3d -ljansson -lm
+LIBS := -lctru -lcitro3d -ljansson -lm -lz
 
 # Source files
 SOURCES := \
@@ -29,7 +38,7 @@ SOURCES := \
     $(SOURCE_DIR)/config.c
 
 # Object files
-OBJECTS := $(SOURCES:.c=.o)
+OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
 
 # Targets
 .PHONY: all clean cia
@@ -39,8 +48,9 @@ all: $(TARGET).3dsx
 $(TARGET).3dsx: $(OBJECTS)
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
+	@echo "Built $(TARGET).3dsx"
 
-%.o: %.c
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -48,15 +58,13 @@ cia: $(TARGET).cia
 
 $(TARGET).cia: $(TARGET).3dsx
 	@echo "Building CIA..."
-	# CIA building would go here
-	# For now, just copy the 3dsx
-	cp $(TARGET).3dsx $(BUILD_DIR)/$(TARGET).3dsx
+	@echo "Note: CIA building requires makerom tool"
+	@echo "Copy $(TARGET).3dsx to SD card for testing"
+	cp $< $(BUILD_DIR)/$@
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f $(OBJECTS)
-	rm -f $(TARGET).3dsx $(TARGET).cia
-	rm -f $(TARGET).elf
+	rm -f $(TARGET).3dsx $(TARGET).cia $(TARGET).elf
 
 # Dependency generation
 %.d: %.c

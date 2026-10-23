@@ -7,7 +7,7 @@
 #define CONFIG_FILE "sdmc:/fedii/config.json"
 
 int config_init() {
-    // Create directory if it doesn't exist
+    // Ensure directory exists
     Result res = FSUSER_CreateDirectory(
         fsMakePath(PATH_ASCII, "/fedii"),
         FS_ATTRIBUTE_DIRECTORY
@@ -23,26 +23,53 @@ int config_load(config_t *config) {
         return -1;
     }
     
-    char buffer[1024];
-    if (fgets(buffer, sizeof(buffer), fp)) {
-        // Simple JSON parsing (would use jansson in full implementation)
-        char *token = strtok(buffer, "{":\r\n\t ");
-        while (token) {
-            if (strstr(token, "instance_url")) {
-                token = strtok(NULL, "\"\r\n\t ");
-                if (token) config->instance_url = strdup(token);
-            } else if (strstr(token, "access_token")) {
-                token = strtok(NULL, "\"\r\n\t ");
-                if (token) config->access_token = strdup(token);
-            } else if (strstr(token, "username")) {
-                token = strtok(NULL, "\"\r\n\t ");
-                if (token) config->username = strdup(token);
-            }
-            token = strtok(NULL, "{":\r\n\t ");
+    // Initialize config
+    memset(config, 0, sizeof(config_t));
+    
+    // Read file
+    char buffer[4096];
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, fp);
+    buffer[bytes_read] = '\0';
+    fclose(fp);
+    
+    // Simple JSON parsing
+    char *instance_start = strstr(buffer, "\"instance_url\":");
+    char *token_start = strstr(buffer, "\"access_token\":");
+    char *username_start = strstr(buffer, "\"username\":");
+    
+    if (instance_start) {
+        instance_start = strchr(instance_start, '"') + 1;
+        char *instance_end = strchr(instance_start, '"');
+        if (instance_end) {
+            size_t len = instance_end - instance_start;
+            config->instance_url = malloc(len + 1);
+            strncpy(config->instance_url, instance_start, len);
+            config->instance_url[len] = '\0';
         }
     }
     
-    fclose(fp);
+    if (token_start) {
+        token_start = strchr(token_start, '"') + 1;
+        char *token_end = strchr(token_start, '"');
+        if (token_end) {
+            size_t len = token_end - token_start;
+            config->access_token = malloc(len + 1);
+            strncpy(config->access_token, token_start, len);
+            config->access_token[len] = '\0';
+        }
+    }
+    
+    if (username_start) {
+        username_start = strchr(username_start, '"') + 1;
+        char *username_end = strchr(username_start, '"');
+        if (username_end) {
+            size_t len = username_end - username_start;
+            config->username = malloc(len + 1);
+            strncpy(config->username, username_start, len);
+            config->username[len] = '\0';
+        }
+    }
+    
     return 0;
 }
 
@@ -67,5 +94,17 @@ void config_free(config_t *config) {
         free(config->instance_url);
         free(config->access_token);
         free(config->username);
+        config->instance_url = NULL;
+        config->access_token = NULL;
+        config->username = NULL;
     }
+}
+
+// Create default config
+void config_set_defaults(config_t *config) {
+    memset(config, 0, sizeof(config_t));
+    config->instance_url = strdup("https://mastodon.social");
+    config->access_token = strdup("");
+    config->username = strdup("");
+    config->theme_color = COLOR_PINK;
 }

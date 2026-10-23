@@ -3,9 +3,6 @@
 
 #include <jansson.h>
 
-// Mastodon API endpoints
-define MASTODON_API_V1 "/api/v1"
-
 // Status/toot structure
 typedef struct {
     char *id;
@@ -40,5 +37,8 @@ mastodon_account_t* mastodon_get_account();
 
 // Free status array
 void mastodon_free_statuses(mastodon_status_t *statuses, int count);
+
+// Free account
+void mastodon_free_account(mastodon_account_t *account);
 
 #endif // MASTODON_H
